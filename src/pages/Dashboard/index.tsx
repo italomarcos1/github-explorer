@@ -1,62 +1,76 @@
-import React from 'react';
+import React, { useState, FormEvent } from 'react';
 import { FiChevronRight } from 'react-icons/fi';
 import logo from '../../assets/logo.svg';
-import { Title, Form, Repositories } from './styles';
+import { Title, Form, Repositories, Error } from './styles';
+
+import api from '../../services/api';
+
+interface Repository {
+  full_name: string;
+  description: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+}
 
 const Dashboard: React.FC = () => {
+  const [newRepo, setNewRepo] = useState('');
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [inputError, setInputError] = useState('');
+
+  async function handleAddRepository(
+    e: FormEvent<HTMLFormElement>,
+  ): Promise<void> {
+    e.preventDefault();
+
+    if (!newRepo) {
+      setInputError('Digite o autor/nome do repositório');
+      return;
+    }
+
+    try {
+      const response = await api.get<Repository>(`repos/${newRepo}`);
+
+      const repo = response.data;
+
+      setRepositories([...repositories, repo]);
+      setNewRepo('');
+    } catch {
+      setInputError('Erro na busca do repositório.');
+    }
+  }
+
   return (
     <>
       <img src={logo} alt="Github Explorer" />
       <Title>Explore repositórios no GitHub</Title>
 
-      <Form>
-        <input placeholder="Digite o nome do repositório" />
+      <Form hasError={!!inputError} onSubmit={handleAddRepository}>
+        <input
+          value={newRepo}
+          onChange={e => setNewRepo(e.target.value)}
+          placeholder="Digite o nome do repositório"
+        />
         <button type="submit">Pesquisar</button>
       </Form>
 
+      {inputError && <Error>{inputError}</Error>}
+
       <Repositories>
-        <a href="teste">
-          <img
-            src="https://avatars1.githubusercontent.com/u/26335864?s=460&u=27c7f289bca68217510a5fbb0351cd64c74ec7cb&v=4"
-            alt="Italo Marcos"
-          />
-          <div>
-            <strong>italomarcos1/gobarberweb</strong>
-            <p>
-              Uma aplicação front-end desenvolvida com ReactJS, durante o do
-              bootcamp GoStack, da Rocketseat.
-            </p>
-          </div>
-          <FiChevronRight size={20} />
-        </a>
-        <a href="teste">
-          <img
-            src="https://avatars1.githubusercontent.com/u/26335864?s=460&u=27c7f289bca68217510a5fbb0351cd64c74ec7cb&v=4"
-            alt="Italo Marcos"
-          />
-          <div>
-            <strong>italomarcos1/gobarberweb</strong>
-            <p>
-              Uma aplicação front-end desenvolvida com ReactJS, durante o do
-              bootcamp GoStack, da Rocketseat.
-            </p>
-          </div>
-          <FiChevronRight size={20} />
-        </a>
-        <a href="teste">
-          <img
-            src="https://avatars1.githubusercontent.com/u/26335864?s=460&u=27c7f289bca68217510a5fbb0351cd64c74ec7cb&v=4"
-            alt="Italo Marcos"
-          />
-          <div>
-            <strong>italomarcos1/gobarberweb</strong>
-            <p>
-              Uma aplicação front-end desenvolvida com ReactJS, durante o do
-              bootcamp GoStack, da Rocketseat.
-            </p>
-          </div>
-          <FiChevronRight size={20} />
-        </a>
+        {repositories.map(repository => (
+          <a href="teste">
+            <img
+              src={repository.owner.avatar_url}
+              alt={repository.owner.login}
+            />
+            <div>
+              <strong>{repository.owner.login}</strong>
+              <p>{repository.description}</p>
+            </div>
+            <FiChevronRight size={20} />
+          </a>
+        ))}
       </Repositories>
     </>
   );
